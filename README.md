@@ -1,7 +1,5 @@
-# COMP6206: Invariant Fourier Descriptors
-
-## Group B3: Ian Barker and Trisha Khallaghi
-
----
+# COMP6206: Advanced Computer Vision
+## Invariant Fourier Descriptors
+### Group B3: Ian Barker and Trisha Khallaghi
 
 TODO
