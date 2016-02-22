@@ -1,3 +1,5 @@
+from __future__ import division
+
 # External libraries.
 import copy
 import cv2
@@ -50,8 +52,13 @@ def fresh_image(image = img_orig):
 threshold_img	= clean(img_orig, False)
 contours		= find_contours(threshold_img)
 
-# Check this out.
-contour			= contours[0][:, 0, :]
+# BELOW HERE LIES SCARY TESTING.
+
+# [0] strips out the array we care about.
+# Advanced indexing in numpy: [:, 0]
+# : gets ALL 'rows'.
+# 0 grabs the first element in each 'row'.
+contour			= contours[0][:, 0]
 
 # Creates an empty np struct.
 # shape gives (len, 1, 2), i.e. an array of pairs length len.
@@ -60,6 +67,29 @@ contour_complex			= np.empty(contour.shape[:-1], dtype = complex)
 contour_complex.real	= contour[:, 0]
 contour_complex.imag	= contour[:, 1]
 
-fourier_result	= np.fft.fft(contour_complex)
+fourier_val		= np.fft.fft(contour_complex)
+fourier_freq	= np.fft.fftfreq(len(contour_complex))
+#fourier_result	= np.fft.fftfreq(len(contour_complex))
+#print fourier_result
 
-print fourier_result
+frequencies		= []
+for index, val in enumerate(fourier_freq):
+	frequencies.append([index, val])
+
+frequencies.sort(key = lambda tuple: abs(tuple[1]))
+
+percentage	= 10
+to_get		= int(len(frequencies) * (percentage / 100))
+
+to_reverse	= []
+for i in range(0, to_get):
+	to_reverse.append(fourier_val[i])
+
+test	= np.fft.ifft(to_reverse)
+print test
+
+#print fourier_freq[0]
+
+#test			= np.fft.ifft(fourier_result)
+
+#print test
