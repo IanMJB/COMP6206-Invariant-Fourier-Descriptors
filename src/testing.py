@@ -3,18 +3,22 @@ from __future__ import division
 # External libraries.
 import copy
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import pprint
+import sys
 
 # Image directory.
 img_dir	= '../images/'
 
 # Images for testing.
-gumby	= 'gumby.jpg'
-penguin	= 'penguin.jpg'
-star	= 'star.jpg'
+gumby			= 'gumby.jpg'
+penguin			= 'penguin.jpg'
+star			= 'star.jpg'
+star_rotated	= 'star_rotated.jpg'
 
-img_orig		= cv2.imread(img_dir + star, 0)
+img_orig		= cv2.imread(img_dir + penguin, 0)
+percentage		= 10
 
 # Converts an RGB image into greyscale.
 # Then converts the greyscale image into a binary one, and returns the threshold image.
@@ -49,47 +53,95 @@ def display_image(image, title):
 def fresh_image(image = img_orig):
 	return copy.deepcopy(image)
 
+# Normalises the boundary, so the minimum x/y are 0/0.
+# Expects the complex form of the boundary.
+def normalise_boundary(boundary):
+	min_i	= sys.float_info.max
+	min_j	= sys.float_info.max
+
+	for position in boundary:
+		if position.real < min_i:
+			min_i	= position.real
+		if position.imag < min_j:
+			min_j	= position.imag
+
+	for index, val in enumerate(boundary):
+		boundary[index]	= (val.real - min_i) + 1j * (val.imag - min_j)
+
+	return boundary
+
+# Turns the contours provided by OpenCV into a numpy complex array.
+def contour_to_complex(contours, layer = 0):
+	# [layer] strips out the array we care about.
+	# Advanced indexing in numpy: [:, 0]
+	# : gets ALL 'rows'.
+	# 0 grabs the first element in each 'row'.
+	contour	= contours[layer][:, 0]
+
+	# Creates an empty np struct.
+	# shape gives (len, 1, 2), i.e. an array of pairs length len.
+	# [:-1] gives an array of elements length len.
+	contour_complex			= np.empty(contour.shape[:-1], dtype = complex)
+	contour_complex.real	= contour[:, 0]
+	# Negated as OpenCV flips the y-axes normally, eases visualisation.
+	contour_complex.imag	= -contour[:, 1]
+
+	return contour_complex
+
+def get_low_frequencies_percentage(fourier_val, percentage):
+	fourier_freq		= np.fft.fftfreq(len(fourier_val))
+
+	frequency_indices	= []
+	for index, val in enumerate(fourier_freq):
+		frequency_indices.append([index, val])
+
+	# Sorts on absolute value of frequency (want negative and positive).
+	frequency_indices.sort(key = lambda tuple: abs(tuple[1]))
+
+	to_get		= int(len(frequency_indices) * (percentage / 100))
+
+	raw_values	= []
+	for i in range(0, to_get):
+		index	= frequency_indices[i][0]
+		raw_values.append([fourier_val[index], index])
+
+	# Sort based on original ordering.
+	raw_values.sort(key = lambda tuple: tuple[1])
+	# Strip out indices used for sorting.
+	#values	= values[:][0]
+
+	# Strip out indices used for sorting.
+	values	= []
+	for value in raw_values:
+		values.append(value[0])
+
+	return values
+
+# Performs the inverse DFT.
+# If a subset of the original values are inverted, it scales the image.
+# Therefore scales back to original values.
+def inverse_fourier_and_scale(fourier_val, percentage = 100):
+	inverted	= np.fft.ifft(fourier_val)
+	inverted	= inverted / (100 / percentage)
+
+	return inverted
+
+# Plots the boundary.
+# Expects it as a numpy complex array.
+def plot_boundary(boundary, img_orig):
+	dimensions	= np.shape(img_orig)
+	x_max		= dimensions[1]
+	y_min		= dimensions[0]
+
+	plt.plot(boundary.real, boundary.imag)
+	plt.xlim(0, x_max)
+	plt.ylim(-y_min, 0)
+	plt.show()
+
 threshold_img	= clean(img_orig, False)
 contours		= find_contours(threshold_img)
-
-# BELOW HERE LIES SCARY TESTING.
-
-# [0] strips out the array we care about.
-# Advanced indexing in numpy: [:, 0]
-# : gets ALL 'rows'.
-# 0 grabs the first element in each 'row'.
-contour			= contours[0][:, 0]
-
-# Creates an empty np struct.
-# shape gives (len, 1, 2), i.e. an array of pairs length len.
-# [:-1] gives an array of elements length len.
-contour_complex			= np.empty(contour.shape[:-1], dtype = complex)
-contour_complex.real	= contour[:, 0]
-contour_complex.imag	= contour[:, 1]
-
+contour_complex	= contour_to_complex(contours, 1)
 fourier_val		= np.fft.fft(contour_complex)
-fourier_freq	= np.fft.fftfreq(len(contour_complex))
-#fourier_result	= np.fft.fftfreq(len(contour_complex))
-#print fourier_result
-
-frequencies		= []
-for index, val in enumerate(fourier_freq):
-	frequencies.append([index, val])
-
-frequencies.sort(key = lambda tuple: abs(tuple[1]))
-
-percentage	= 10
-to_get		= int(len(frequencies) * (percentage / 100))
-
-to_reverse	= []
-for i in range(0, to_get):
-	to_reverse.append(fourier_val[i])
-
-test	= np.fft.ifft(to_reverse)
-print test
-
-#print fourier_freq[0]
-
-#test			= np.fft.ifft(fourier_result)
-
-#print test
+fourier_subset	= get_low_frequencies_percentage(fourier_val, percentage)
+inverted		= inverse_fourier_and_scale(fourier_subset, percentage)
+plot_boundary(inverted, img_orig)
