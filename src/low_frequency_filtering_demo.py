@@ -2,6 +2,7 @@
 # 1) Image name (residing in images/).
 # 2) Whether the image is RGB: 0 = false, 1 = true.
 # 3) Percentage of the Fourier values to utilise in inversion: 1->100.
+# Can also be 'all' which will result in a far more verbose output comparing several percentages.
 # 4) Contour level of the image (may be several, generally the one you want
 # has to be found via trial and error on the image if there are several): 0->X.
 # E.g. python low_frequency_filtering_demo.py star.jpg 0 10 0
@@ -12,6 +13,7 @@ from __future__ import division
 # External libraries.
 import copy
 import cv2
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 import pprint
@@ -24,7 +26,11 @@ img_dir	= '../images/'
 args			= sys.argv
 img				= args[1]
 is_rgb			= int(args[2]) == 1
-percentage		= int(args[3])
+
+percentage		= args[3]
+if percentage != 'all':
+	percentage	= int(percentage)
+
 contour_level	= int(args[4])
 img_orig		= cv2.imread(img_dir + img, 0)
 
@@ -150,34 +156,39 @@ def plot_boundary(boundary, img_orig):
 
 # Plots the boundary against the original image and boundary.
 # Expects boundaries as a numpy complex array.
-def plot_boundaries_and_image(original_boundary, new_boundary, img_orig, threshold_img):
+def plot_boundaries_and_image(original_boundary, new_boundaries, boundary_percentages, img_orig, threshold_img):
 	dimensions	= np.shape(img_orig)
 	x_max		= dimensions[1]
 	y_min		= -dimensions[0]
+
+	size		= 3 + len(new_boundaries)
+	rows		= 4
+	columns		= math.ceil(size / rows)
 	
-	plt.subplot(2, 2, 1)
+	plt.subplot(rows, columns, 1)
 	plt.imshow(img_orig, cmap = 'gray')
 	plt.xticks([]), plt.yticks([])
 	plt.title('Source Image: ' + str(img))
 
-	plt.subplot(2, 2, 2)
+	plt.subplot(rows, columns, 2)
 	plt.imshow(threshold_img, cmap = 'gray')
 	plt.xticks([]), plt.yticks([])
 	plt.title('Threshold Image')
 
-	plt.subplot(2, 2, 3)
+	plt.subplot(rows, columns, 3)
 	plt.plot(original_boundary.real, original_boundary.imag, 'k')
 	plt.xlim(0, x_max)
 	plt.ylim(y_min, 0)
 	plt.xticks([]), plt.yticks([])
 	plt.title('Original Boundary')
 
-	plt.subplot(2, 2, 4)
-	plt.plot(new_boundary.real, new_boundary.imag, 'k')
-	plt.xlim(0, x_max)
-	plt.ylim(y_min, 0)
-	plt.xticks([]), plt.yticks([])
-	plt.title('Truncated Bondary: ' + str(percentage) + '%')
+	for index, boundary in enumerate(new_boundaries): 
+		plt.subplot(rows, columns, (4 + index))
+		plt.plot(boundary.real, boundary.imag, 'k')
+		plt.xlim(0, x_max)
+		plt.ylim(y_min, 0)
+		plt.xticks([]), plt.yticks([])
+		plt.title('Truncated Bondary: ' + str(boundary_percentages[index]) + '%')
 
 	plt.show()
 
@@ -185,6 +196,14 @@ threshold_img	= clean(img_orig, is_rgb)
 contours		= find_contours(threshold_img)
 contour_complex	= contour_to_complex(contours, contour_level)
 fourier_val		= np.fft.fft(contour_complex)
-fourier_subset	= get_low_frequencies_percentage(fourier_val, percentage)
-inverted		= inverse_fourier_and_scale(fourier_subset, percentage)
-plot_boundaries_and_image(contour_complex, inverted, img_orig, threshold_img)
+inverted		= []
+if percentage == 'all':
+	percentages	= [1, 2, 3, 5, 10, 25, 50, 75, 100]
+	for index, percent in enumerate(percentages):
+		fourier_subset	= get_low_frequencies_percentage(fourier_val, percent)
+		inverted.append(inverse_fourier_and_scale(fourier_subset, percent))
+	plot_boundaries_and_image(contour_complex, inverted, percentages, img_orig, threshold_img)
+else:
+	fourier_subset	= get_low_frequencies_percentage(fourier_val, percentage)
+	inverted.append(inverse_fourier_and_scale(fourier_subset, percentage))
+	plot_boundaries_and_image(contour_complex, inverted, [percentage], img_orig, threshold_img)
