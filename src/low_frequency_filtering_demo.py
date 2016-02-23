@@ -177,7 +177,7 @@ def plot_boundaries_and_image(original_boundary, new_boundary, img_orig, thresho
 	plt.xlim(0, x_max)
 	plt.ylim(y_min, 0)
 	plt.xticks([]), plt.yticks([])
-	plt.title('Truncated Bondary')
+	plt.title('Truncated Bondary: ' + str(percentage) + '%')
 
 	plt.show()
 
