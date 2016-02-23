@@ -162,7 +162,7 @@ def plot_boundaries_and_image(original_boundary, new_boundaries, boundary_percen
 	y_min		= -dimensions[0]
 
 	size		= 3 + len(new_boundaries)
-	rows		= 4
+	rows		= math.ceil(math.sqrt(size))
 	columns		= math.ceil(size / rows)
 	
 	plt.subplot(rows, columns, 1)
