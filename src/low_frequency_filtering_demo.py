@@ -4,7 +4,7 @@
 # 3) Percentage of the Fourier values to utilise in inversion: 1->100.
 # 4) Contour level of the image (may be several, generally the one you want
 # has to be found via trial and error on the image if there are several): 0->X.
-# E.g. python testing.py star.jpg 0 10 0
+# E.g. python low_frequency_filtering_demo.py star.jpg 0 10 0
 
 # Future imports.
 from __future__ import division
