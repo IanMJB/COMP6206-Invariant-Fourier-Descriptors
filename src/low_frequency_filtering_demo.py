@@ -37,7 +37,7 @@ img_orig		= cv2.imread(img_dir + img, 0)
 # Converts an RGB image into greyscale.
 # Then converts the greyscale image into a binary one, and returns the threshold image.
 def clean(image, src_rgb):
-	img_clone	= fresh_image()
+	img_clone	= fresh_image(image)
 
 	if src_rgb:
 		img_clone	= cv2.cvtColor(img_clone, cv2.COLOR_BGR2GRAY)
