@@ -201,7 +201,8 @@ class fourier_toolbox:
 			inverted.append(self.inverse_fourier_and_scale(fourier_subset, percent_to_keep))
 			self.plot_boundaries_and_image(image, image_name, contour_complex, inverted, [percent_to_keep], threshold_img)
 
-	def test(self, blah):
-		threshold_img	= self.clean(self.img_orig, 0)
+	def test(self, img_dir, img_name, contour_level):
+		img_orig		= self.read_image(img_dir, img_name)
+		threshold_img	= self.clean(img_orig, 0)
 		contours		= self.find_contours(threshold_img)
-		return contours[blah]
+		return contours[contour_level]

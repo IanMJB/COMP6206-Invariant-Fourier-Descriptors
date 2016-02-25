@@ -41,11 +41,10 @@ if run_mode == 'boundary_demo':
 img_a	= 'penguin.jpg'
 img_b	= 'star.jpg'
 
-toolbox_a	= fourier_toolbox(img_dir, img_a)
-toolbox_b	= fourier_toolbox(img_dir, img_b)
+toolbox	= fourier_toolbox()
 
-contour_a	= toolbox_a.test(1)
-contour_b	= toolbox_b.test(0)
+contour_a	= toolbox.test(img_dir, img_a, 1)
+contour_b	= toolbox.test(img_dir, img_b, 0)
 
 print cv2.matchShapes(contour_a, contour_b, 1, 0)
 '''
