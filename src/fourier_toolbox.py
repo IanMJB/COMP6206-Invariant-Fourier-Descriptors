@@ -1,12 +1,3 @@
-# Expected command line inputs:
-# 1) Image name (residing in images/).
-# 2) Whether the image is RGB: 0 = false, 1 = true.
-# 3) Percentage of the Fourier values to utilise in inversion: 1->100.
-# Can also be 'all' which will result in a far more verbose output comparing several percentages.
-# 4) Contour level of the image (may be several, generally the one you want
-# has to be found via trial and error on the image if there are several): 0->X.
-# E.g. python low_frequency_filtering_demo.py star.jpg 0 10 0
-
 # Future imports.
 from __future__ import division
 
@@ -20,12 +11,18 @@ import sys
 
 class fourier_toolbox:
 
+	'''
 	img_name		= None
 	img_orig		= None
 
 	def __init__(self, img_dir, img_name):
 		self.img_name		= img_name
 		self.img_orig		= cv2.imread(img_dir + img_name, 0)
+	'''
+
+	# Reads in and returns the image in OpenCV format.
+	def read_image(self, img_dir, img_name):
+		return cv2.imread(img_dir + img_name, 0)
 
 	# Converts an RGB image into greyscale.
 	# Then converts the greyscale image into a binary one, and returns the threshold image.
@@ -57,7 +54,7 @@ class fourier_toolbox:
 		cv2.destroyAllWindows()
 
 	# Returns a clone of an image, or the original image if no argument passed.
-	def fresh_image(self, image = img_orig):
+	def fresh_image(self, image):
 		return copy.deepcopy(image)
 
 	# Normalises the boundary, so the minimum x/y are 0/0.
@@ -135,8 +132,8 @@ class fourier_toolbox:
 
 	# Plots the boundary.
 	# Expects it as a numpy complex array.
-	def plot_boundary(self, boundary, boundary_percent):
-		dimensions	= np.shape(self.img_orig)
+	def plot_boundary(self, image, boundary, boundary_percent):
+		dimensions	= np.shape(image)
 		x_max		= dimensions[1]
 		y_min		= -dimensions[0]
 
@@ -150,8 +147,8 @@ class fourier_toolbox:
 
 	# Plots the boundary against the original image and boundary.
 	# Expects boundaries as a numpy complex array.
-	def plot_boundaries_and_image(self, original_boundary, new_boundaries, boundary_percentages, threshold_img):
-		dimensions	= np.shape(self.img_orig)
+	def plot_boundaries_and_image(self, image, image_name, original_boundary, new_boundaries, boundary_percentages, threshold_img):
+		dimensions	= np.shape(image)
 		x_max		= dimensions[1]
 		y_min		= -dimensions[0]
 
@@ -160,9 +157,9 @@ class fourier_toolbox:
 		columns		= math.ceil(size / rows)
 		
 		plt.subplot(rows, columns, 1)
-		plt.imshow(self.img_orig, cmap = 'gray')
+		plt.imshow(image, cmap = 'gray')
 		plt.xticks([]), plt.yticks([])
-		plt.title('Source Image: ' + str(self.img_name))
+		plt.title('Source Image: ' + str(image_name))
 
 		plt.subplot(rows, columns, 2)
 		plt.imshow(threshold_img, cmap = 'gray')
@@ -187,8 +184,8 @@ class fourier_toolbox:
 
 		plt.show()
 
-	def demo(self, is_img_rgb, percent_to_keep, contour_level):
-		threshold_img	= self.clean(self.img_orig, is_img_rgb)
+	def demo(self, image, image_name, is_img_rgb, percent_to_keep, contour_level):
+		threshold_img	= self.clean(image, is_img_rgb)
 		contours		= self.find_contours(threshold_img)
 		contour_complex	= self.contour_to_complex(contours, contour_level)
 		fourier_val		= np.fft.fft(contour_complex)
@@ -198,8 +195,13 @@ class fourier_toolbox:
 			for index, percent in enumerate(percentages):
 				fourier_subset	= self.get_low_frequencies_percentage(fourier_val, percent)
 				inverted.append(self.inverse_fourier_and_scale(fourier_subset, percent))
-			self.plot_boundaries_and_image(contour_complex, inverted, percentages, threshold_img)
+			self.plot_boundaries_and_image(image, image_name, contour_complex, inverted, percentages, threshold_img)
 		else:
 			fourier_subset	= self.get_low_frequencies_percentage(fourier_val, percent_to_keep)
 			inverted.append(self.inverse_fourier_and_scale(fourier_subset, percent_to_keep))
-			self.plot_boundaries_and_image(contour_complex, inverted, [percent_to_keep], threshold_img)
+			self.plot_boundaries_and_image(image, image_name, contour_complex, inverted, [percent_to_keep], threshold_img)
+
+	def test(self, blah):
+		threshold_img	= self.clean(self.img_orig, 0)
+		contours		= self.find_contours(threshold_img)
+		return contours[blah]
