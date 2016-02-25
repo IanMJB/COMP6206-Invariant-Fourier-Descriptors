@@ -37,7 +37,6 @@ if run_mode == 'boundary_demo':
 	fourier_toolbox.demo(img_orig, img_name, is_img_rgb, percent_to_keep, contour_level)
 
 # This'll be used for comparing with moment methods.
-
 '''
 img_a	= 'penguin.jpg'
 img_b	= 'star.jpg'
