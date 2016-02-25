@@ -13,13 +13,17 @@
 # TODO: Remove unused later.
 import cv2
 import sys
+import math
+import numpy as np
+
+from scipy.spatial import distance
 
 # Internal classes.
 from fourier_toolbox import fourier_toolbox
 
 # Image directory.
 img_dir	= '../images/'
-
+'''
 # Parse command line arguments and read in the image.
 args			= sys.argv
 run_mode		= args[1]
@@ -35,16 +39,38 @@ if run_mode == 'boundary_demo':
 	fourier_toolbox	= fourier_toolbox()
 	img_orig		= fourier_toolbox.read_image(img_dir, img_name)
 	fourier_toolbox.demo(img_orig, img_name, is_img_rgb, percent_to_keep, contour_level)
+'''
 
 # This'll be used for comparing with moment methods.
-'''
 img_a	= 'penguin.jpg'
-img_b	= 'star.jpg'
+img_b	= 'penguin_rotated.jpg'
 
 toolbox	= fourier_toolbox()
 
-contour_a	= toolbox.test(img_dir, img_a, 1)
-contour_b	= toolbox.test(img_dir, img_b, 0)
+contour_a	= toolbox.get_complex_contour(img_dir, img_a, 1)
+contour_b	= toolbox.get_complex_contour(img_dir, img_b, 1)
 
+#for index, value in enumerate(contour_b):
+#	if value != contour_a[index]:
+#		print math.abs(value - contour_a[index])
+
+fourier_a	= np.fft.fft(contour_a)
+fourier_b	= np.fft.fft(contour_b)
+
+trun_a		= toolbox.get_low_frequencies(fourier_a, 10)
+trun_b		= toolbox.get_low_frequencies(fourier_b, 10)
+
+# Translation invariance.
+
+
+print distance.euclidean(trun_a, trun_b)
+
+#print np.linalg.norm(contour_a - contour_b)
+
+#print len(contour_a)
+#print len(contour_b)
+'''
 print cv2.matchShapes(contour_a, contour_b, 1, 0)
 '''
+
+# Remove DC from getlowfreq / somewhere else.

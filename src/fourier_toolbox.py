@@ -86,6 +86,13 @@ class fourier_toolbox:
 	# Gets the lowest X% of frequency values from the fourier values.
 	# Places back into the correct order.
 	def get_low_frequencies_percentage(self, fourier_val, percent_to_keep):
+		to_get		= int(len(fourier_val) * (percent_to_keep / 100))
+
+		return self.get_low_frequencies(fourier_val, to_get)
+
+	# Gets the lowest X of frequency values from the fourier values.
+	# Places back into the correct order.
+	def get_low_frequencies(self, fourier_val, to_get):
 		fourier_freq		= np.fft.fftfreq(len(fourier_val))
 
 		frequency_indices	= []
@@ -94,8 +101,6 @@ class fourier_toolbox:
 
 		# Sorts on absolute value of frequency (want negative and positive).
 		frequency_indices.sort(key = lambda tuple: abs(tuple[1]))
-
-		to_get		= int(len(frequency_indices) * (percent_to_keep / 100))
 
 		raw_values	= []
 		for i in range(0, to_get):
@@ -181,6 +186,7 @@ class fourier_toolbox:
 		contours		= self.find_contours(threshold_img)
 		contour_complex	= self.contour_to_complex(contours, contour_level)
 		fourier_val		= np.fft.fft(contour_complex)
+		print fourier_val
 		inverted		= []
 		if percent_to_keep == 'all':
 			percentages	= [1, 2, 3, 5, 10, 25, 50, 75, 100]
