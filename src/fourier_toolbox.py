@@ -11,15 +11,6 @@ import sys
 
 class fourier_toolbox:
 
-	'''
-	img_name		= None
-	img_orig		= None
-
-	def __init__(self, img_dir, img_name):
-		self.img_name		= img_name
-		self.img_orig		= cv2.imread(img_dir + img_name, 0)
-	'''
-
 	# Reads in and returns the image in OpenCV format.
 	def read_image(self, img_dir, img_name):
 		return cv2.imread(img_dir + img_name, 0)
@@ -184,6 +175,7 @@ class fourier_toolbox:
 
 		plt.show()
 
+	# Function for demonstration used to display truncated contours.
 	def demo(self, image, image_name, is_img_rgb, percent_to_keep, contour_level):
 		threshold_img	= self.clean(image, is_img_rgb)
 		contours		= self.find_contours(threshold_img)
