@@ -7,23 +7,26 @@
 # 5) Contour level of the image (may be several, generally the one you want
 # has to be found via trial and error on the image if there are several): 0->X.
 # E.g. python main.py boundary_demo star.jpg 0 10 0
-# python main.py boundary_demo penguin.jpg 0 all 1
+
+# Expected command line inputs for image comparison demonstration:
+# 1) Run mode: 'compare_images'.
+# 2) Image A name (residing in images/) (including file extension).
+# 3) Image B name (as above).
+# 3) Contour level of image A (may be several, generally the one you want
+# has to be found via trial and error on the image if there are several): 0->X.
+# 4) Contour level of image B (as above).
+# E.g. python main.py compare_images kitty.jpg kitty_rotated.jpg 95 95
 
 # External libraries.
 # TODO: Remove unused later.
 import sys
-import cv2
-import math
-import numpy as np
-
-from scipy.spatial import distance
 
 # Internal classes.
 from fourier_toolbox import fourier_toolbox
 
 # Image directory.
 img_dir	= '../images/'
-'''
+
 # Parse command line arguments and read in the image.
 args			= sys.argv
 run_mode		= args[1]
@@ -34,26 +37,15 @@ if run_mode == 'boundary_demo':
 	if percent_to_keep != 'all':
 		percent_to_keep	= int(percent_to_keep)
 	contour_level	= int(args[5])
+elif run_mode == 'compare_images':
+	img_name_a			= args[2]
+	img_name_b			= args[3]
+	img_a_contour_level	= int(args[4])
+	img_b_contour_level	= int(args[5])
 
+fourier_toolbox	= fourier_toolbox()
 if run_mode == 'boundary_demo':
-	fourier_toolbox	= fourier_toolbox()
 	img_orig		= fourier_toolbox.read_image(img_dir, img_name)
 	fourier_toolbox.demo(img_orig, img_name, is_img_rgb, percent_to_keep, contour_level)
-'''
-
-# This'll be used for comparing with moment methods.
-img_a	= 'penguin.jpg'
-img_b	= 'penguin_rotated.jpg'
-
-toolbox	= fourier_toolbox()
-toolbox.get_shape_difference(img_dir, img_a, img_b, 1, 1)
-
-#print np.linalg.norm(contour_a - contour_b)
-
-#print len(contour_a)
-#print len(contour_b)
-'''
-print cv2.matchShapes(contour_a, contour_b, 1, 0)
-'''
-
-# Remove DC from getlowfreq / somewhere else.
+elif run_mode == 'compare_images':
+	fourier_toolbox.get_shape_difference(img_dir, img_name_a, img_name_b, img_a_contour_level, img_b_contour_level)

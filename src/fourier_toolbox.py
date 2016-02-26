@@ -242,7 +242,6 @@ class fourier_toolbox:
 		contours		= self.find_contours(threshold_img)
 		contour_complex	= self.contour_to_complex(contours, contour_level)
 		fourier_val		= np.fft.fft(contour_complex)
-		print fourier_val
 		inverted		= []
 		if percent_to_keep == 'all':
 			percentages	= [1, 2, 3, 5, 10, 25, 50, 75, 100]
