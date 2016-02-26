@@ -15,10 +15,11 @@
 # 3) Contour level of image A (may be several, generally the one you want
 # has to be found via trial and error on the image if there are several): 0->X.
 # 4) Contour level of image B (as above).
-# E.g. python main.py compare_images kitty.jpg kitty_rotated.jpg 95 95
+# 5) Number of frequencies to keep for comparison (note this is N+1 when translation
+# invariance is desired, as it also removes the DC-term).
+# E.g. python main.py compare_images kitty.jpg kitty_rotated.jpg 95 95 10
 
 # External libraries.
-# TODO: Remove unused later.
 import sys
 
 # Internal classes.
@@ -42,10 +43,11 @@ elif run_mode == 'compare_images':
 	img_name_b			= args[3]
 	img_a_contour_level	= int(args[4])
 	img_b_contour_level	= int(args[5])
+	no_frequencies		= int(args[6])
 
 fourier_toolbox	= fourier_toolbox()
 if run_mode == 'boundary_demo':
 	img_orig		= fourier_toolbox.read_image(img_dir, img_name)
 	fourier_toolbox.demo(img_orig, img_name, is_img_rgb, percent_to_keep, contour_level)
 elif run_mode == 'compare_images':
-	fourier_toolbox.get_shape_difference(img_dir, img_name_a, img_name_b, img_a_contour_level, img_b_contour_level)
+	fourier_toolbox.get_shape_difference(img_dir, img_name_a, img_name_b, img_a_contour_level, img_b_contour_level, no_frequencies)

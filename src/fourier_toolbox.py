@@ -121,7 +121,7 @@ class fourier_toolbox:
 
 		return inverted
 
-	def get_shape_difference(self, img_dir, img_a, img_b, contour_level_a, contour_level_b):
+	def get_shape_difference(self, img_dir, img_a, img_b, contour_level_a, contour_level_b, no_frequencies):
 		# Get contour represented as complex numbers
 		contour_a		= self.get_complex_contour(img_dir, img_a, contour_level_a)
 		contour_b		= self.get_complex_contour(img_dir, img_b, contour_level_b)
@@ -136,8 +136,8 @@ class fourier_toolbox:
 
 		# Uses a subset of the fourier coefficient as we only care
 		# about the global form of the contours, not the details
-		trun_a			= self.get_low_frequencies(fourier_a, 5)
-		trun_b			= self.get_low_frequencies(fourier_b, 5)
+		trun_a			= self.get_low_frequencies(fourier_a, no_frequencies)
+		trun_b			= self.get_low_frequencies(fourier_b, no_frequencies)
 
 		# make translation invariant
 		final_a 		= self.make_translation_invariant(trun_a)
@@ -155,18 +155,38 @@ class fourier_toolbox:
 		opencv_dist = cv2.matchShapes(ocv_contour_a, ocv_contour_b, 1, 0)
 
 		print "Distance generated from opencv.matchShapes: " + str(opencv_dist)
-		self.display_shape_difference(img_a, img_b, dist)
+		self.display_shape_difference(img_a, img_b, np.fft.ifft(trun_a), np.fft.ifft(trun_b), dist)
 
-	def display_shape_difference(self, img_a, img_b, distance):
-		plt.subplot(1, 2, 1)
+	def display_shape_difference(self, img_a, img_b, boundary_a, boundary_b, distance):
+		dimensions_a	= np.shape(img_a)
+		x_max_a			= dimensions_a[1]
+		y_min_a			= -dimensions_a[0]
+
+		dimensions_b	= np.shape(img_b)
+		x_max_b			= dimensions_b[1]
+		y_min_b			= -dimensions_b[0]
+
+		plt.subplot(2, 2, 1)
 		plt.imshow(img_a, cmap = 'gray')
 		plt.xticks([]), plt.yticks([])
 		plt.title('Shape to Match: ')
 
-		plt.subplot(1, 2, 2)
+		plt.subplot(2, 2, 2)
 		plt.imshow(img_b, cmap = 'gray')
 		plt.xticks([]), plt.yticks([])
 		plt.title('Difference to Original Shape: \n' + str(np.round(distance, 3)))
+
+		plt.subplot(2, 2, 3)
+		plt.plot(boundary_a.real, boundary_a.imag, 'k')
+		plt.xticks([])
+		plt.yticks([])
+		plt.title('Visualisation of Original\nShape\'s Descriptors')
+
+		plt.subplot(2, 2, 4)
+		plt.plot(boundary_b.real, boundary_b.imag, 'k')
+		plt.xticks([])
+		plt.yticks([])
+		plt.title('Visualisation of Comparison\nShape\'s Descriptors')
 
 		plt.show()
 
