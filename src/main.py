@@ -28,7 +28,7 @@ from fourier_toolbox import fourier_toolbox
 # Image directory.
 img_dir	= '../images/'
 
-# Parse command line arguments and read in the image.
+# Parse command line arguments.
 args			= sys.argv
 run_mode		= args[1]
 if run_mode == 'boundary_demo':
@@ -43,11 +43,11 @@ elif run_mode == 'compare_images':
 	img_name_b			= args[3]
 	img_a_contour_level	= int(args[4])
 	img_b_contour_level	= int(args[5])
-	no_frequencies		= int(args[6])
 
+# Generate the toolbox, then perform the desired function.
 fourier_toolbox	= fourier_toolbox()
 if run_mode == 'boundary_demo':
 	img_orig		= fourier_toolbox.read_image(img_dir, img_name)
 	fourier_toolbox.demo(img_orig, img_name, is_img_rgb, percent_to_keep, contour_level)
 elif run_mode == 'compare_images':
-	fourier_toolbox.get_shape_difference(img_dir, img_name_a, img_name_b, img_a_contour_level, img_b_contour_level, no_frequencies)
+	fourier_toolbox.display_shape_difference(img_dir, img_name_a, img_name_b, img_a_contour_level, img_b_contour_level)

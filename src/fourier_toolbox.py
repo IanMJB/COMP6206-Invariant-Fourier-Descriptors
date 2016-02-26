@@ -8,9 +8,30 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+
+from matplotlib.widgets import Slider, CheckButtons
 from scipy.spatial import distance
 
 class fourier_toolbox:
+
+	# Global for plotting to see.
+	slider					= None
+	tick_btn				= None
+	plot_title_obj			= None
+	visualisation_a_plot	= None
+	visualisation_a_line	= None
+	visualisation_b_plot	= None
+	visualisation_b_line	= None
+
+	img_dir					= None
+	img_a					= None
+	img_b					= None
+	contour_level_a			= None
+	contour_level_b			= None
+
+	translation_inv			= False
+	scale_inv				= False
+	rotation_sp_inv			= False
 
 	# Reads in and returns the image in OpenCV format.
 	def read_image(self, img_dir, img_name):
@@ -29,12 +50,11 @@ class fourier_toolbox:
 		return threshold
 
 	# Finds and returns the contours.
-	# Potential TODO: Expand to other parameters:
-	# Most exhaustive parameters fed in, change later if possible - specifically CHAIN_APPROX_NONE to CHAIN_APPROX_SIMPLE.
+	# Most exhaustive parameters fed in: CHAIN_APPROX_NONE
+	# CHAIN_APPROX_SIMPLE appears faster, but less accurate (as expected).
 	def find_contours(self, image):
 		img_clone	= self.get_copy(image)
 
-		# TODO: Measure speed gains and discuss in slides
 		contours, hierarchy	= cv2.findContours(img_clone, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
 		return contours
@@ -121,6 +141,117 @@ class fourier_toolbox:
 
 		return inverted
 
+	def display_shape_difference(self, img_dir, img_a, img_b, contour_level_a, contour_level_b):
+		default_frequencies	= 5
+
+		self.img_dir			= img_dir
+		self.img_a				= img_a
+		self.img_b				= img_b
+		self.contour_level_a	= contour_level_a
+		self.contour_level_b	= contour_level_b
+
+		dist, opencv_dist, boundary_a, boundary_b	= self.get_shape_difference(img_dir, img_a, img_b, contour_level_a, contour_level_b, default_frequencies)
+
+		cv_img_a		= self.read_image(img_dir, img_a)
+		cv_img_b		= self.read_image(img_dir, img_b)
+
+		dimensions_a	= np.shape(cv_img_a)
+		x_max_a			= dimensions_a[1]
+		y_min_a			= -dimensions_a[0]
+
+		dimensions_b	= np.shape(cv_img_b)
+		x_max_b			= dimensions_b[1]
+		y_min_b			= -dimensions_b[0]
+
+		slider_axes		= plt.axes([0.2, 0.025, 0.6, 0.04])
+		self.slider		= Slider(slider_axes, 'Fourier Descriptors', 3, 30, valinit = default_frequencies)
+		self.slider.on_changed(self.update_slider)
+
+		tick_btn_axes	= plt.axes([0.2, 0.9, 0.2, 0.1])
+		tick_btn_axes.patch.set_visible(False)
+		tick_btn_axes.axis('off')
+		self.tick_btn	= CheckButtons(tick_btn_axes, ('Translation Invariance', 'Scale Invariance', 'Rotation Invariance'), (self.translation_inv, self.scale_inv, self.rotation_sp_inv))
+		self.tick_btn.on_clicked(self.update_tickbox)
+
+		plt.subplot(2, 2, 1)
+		plt.imshow(cv_img_a, cmap = 'gray')
+		plt.xticks([]), plt.yticks([])
+		plt.title('Shape to Match: ')
+
+		plt.subplot(2, 2, 2)
+		plt.imshow(cv_img_b, cmap = 'gray')
+		plt.xticks([]), plt.yticks([])
+		self.plot_title_obj	= plt.title('Difference to Original Shape: \n' + str(np.round(dist, 3)))
+
+		self.visualisation_a_plot	= plt.subplot(2, 2, 3)
+		self.visualisation_a_line,	= plt.plot(boundary_a.real, boundary_a.imag, 'k')
+		x_lims	= plt.xlim()
+		x_delta	= x_lims[1] - x_lims[0]
+		new_x	= [x_lims[0] - x_delta, x_lims[1] + x_delta]
+		plt.xlim(new_x)
+		y_lims	= plt.ylim()
+		y_delta	= y_lims[1] - y_lims[0]
+		new_y	= [y_lims[0] - y_delta, y_lims[1] + y_delta]
+		plt.ylim(new_y)
+		plt.xticks([])
+		plt.yticks([])
+		plt.title('Visualisation of Original\nShape\'s Descriptors')
+
+		self.visualisation_b_plot	= plt.subplot(2, 2, 4)
+		self.visualisation_b_line,	= plt.plot(boundary_b.real, boundary_b.imag, 'k')
+		plt.xlim(new_x)
+		plt.ylim(new_y)
+		plt.xticks([])
+		plt.yticks([])
+		plt.title('Visualisation of Comparison\nShape\'s Descriptors')
+
+		plt.show()
+
+	def update_slider(self, value):
+		no_frequencies	= int(round(self.slider.val))
+		dist, opencv_dist, boundary_a, boundary_b	= self.get_shape_difference(self.img_dir, self.img_a, self.img_b, self.contour_level_a, self.contour_level_b, no_frequencies)
+
+		new_title		= 'Difference to Original Shape: \n' + str(np.round(dist, 3))
+		plt.setp(self.plot_title_obj, text = new_title)
+
+		a_x_max	= np.amax(boundary_a.real)
+		a_x_min	= np.amin(boundary_a.real)
+		a_x_del	= (a_x_max - a_x_min) / 3
+
+		a_y_max	= np.amax(boundary_a.imag)
+		a_y_min	= np.amin(boundary_a.imag)
+		a_y_del	= (a_y_max - a_y_min) / 3
+
+		b_x_max	= np.amax(boundary_b.real)
+		b_x_min	= np.amin(boundary_b.real)
+		b_x_del	= (b_x_max - b_x_min) / 3
+
+		b_y_max	= np.amax(boundary_b.imag)
+		b_y_min	= np.amin(boundary_b.imag)
+		b_y_del	= (b_y_max - b_y_min) / 3
+
+		self.visualisation_a_line.set_data(boundary_a.real, boundary_a.imag)
+		self.visualisation_a_plot.set_xlim([a_x_min - a_x_del, a_x_max + a_x_del])
+		self.visualisation_a_plot.set_ylim([a_y_min - a_y_del, a_y_max + a_y_del])
+
+		self.visualisation_b_line.set_data(boundary_b.real, boundary_b.imag)
+		self.visualisation_b_plot.set_xlim([b_x_min - b_x_del, b_x_max + b_x_del])
+		self.visualisation_b_plot.set_ylim([b_y_min - b_y_del, b_y_max + b_y_del])
+
+		plt.draw()
+
+	def update_tickbox(self, label):
+		if label == 'Translation Invariance':
+			self.translation_inv	= not self.translation_inv
+		elif label == 'Scale Invariance':
+			self.scale_inv			= not self.scale_inv
+		elif label == 'Rotation Invariance':
+			self.rotation_sp_inv	= not self.rotation_sp_inv
+
+		# Bit of a hack, but hey, code re-use.
+		self.update_slider(0)
+
+
 	def get_shape_difference(self, img_dir, img_a, img_b, contour_level_a, contour_level_b, no_frequencies):
 		# Get contour represented as complex numbers
 		contour_a		= self.get_complex_contour(img_dir, img_a, contour_level_a)
@@ -130,20 +261,27 @@ class fourier_toolbox:
 		fourier_a		= np.fft.fft(contour_a)
 		fourier_b		= np.fft.fft(contour_b)
 
-		# Make result invariant to scale, translation, etc.
-		fourier_a 	= self.make_scale_rotation_sp_invariant(fourier_a)
-		fourier_b 	= self.make_scale_rotation_sp_invariant(fourier_b)
+		# Make rotation and starting point invariant
+		if self.rotation_sp_inv:
+			fourier_a	= self.make_rotation_sp_invariant(fourier_a)
+			fourier_b	= self.make_rotation_sp_invariant(fourier_b)
+
+		# Make scale invariant
+		if self.scale_inv:
+			fourier_a 	= self.make_scale_invariant(fourier_a)
+			fourier_b 	= self.make_scale_invariant(fourier_b)
+
+		# Make translation invariant
+		if self.translation_inv:
+			fourier_a 	= self.make_translation_invariant(fourier_a)
+			fourier_b	= self.make_translation_invariant(fourier_b)
 
 		# Uses a subset of the fourier coefficient as we only care
 		# about the global form of the contours, not the details
-		trun_a			= self.get_low_frequencies(fourier_a, no_frequencies)
-		trun_b			= self.get_low_frequencies(fourier_b, no_frequencies)
+		fourier_a	= self.get_low_frequencies(fourier_a, no_frequencies)
+		fourier_b	= self.get_low_frequencies(fourier_b, no_frequencies)
 
-		# make translation invariant
-		final_a 		= self.make_translation_invariant(trun_a)
-		final_b			= self.make_translation_invariant(trun_b)
-
-		dist = distance.euclidean(final_a, final_b)
+		dist = distance.euclidean(fourier_a, fourier_b)
 
 		img_a = self.read_image(img_dir, img_a)
 		img_b = self.read_image(img_dir, img_b)
@@ -152,53 +290,32 @@ class fourier_toolbox:
 		ocv_contour_a = self.find_contours(self.get_copy(img_a))[contour_level_a]
 		ocv_contour_b = self.find_contours(self.get_copy(img_b))[contour_level_b]
 
+		# Calculate the size of the truncation compared to original
+		# for inverse_fourier_and_scale(), as a percent of the original.
+		fourier_a_percent	= 100 * (len(fourier_a) / len(contour_a))
+		fourier_b_percent	= 100 * (len(fourier_b) / len(contour_b))
+
 		opencv_dist = cv2.matchShapes(ocv_contour_a, ocv_contour_b, 1, 0)
 
-		print "Distance generated from opencv.matchShapes: " + str(opencv_dist)
-		self.display_shape_difference(img_a, img_b, np.fft.ifft(trun_a), np.fft.ifft(trun_b), dist)
+		return dist, opencv_dist, self.inverse_fourier_and_scale(fourier_a, fourier_a_percent), self.inverse_fourier_and_scale(fourier_b, fourier_b_percent)
 
-	def display_shape_difference(self, img_a, img_b, boundary_a, boundary_b, distance):
-		dimensions_a	= np.shape(img_a)
-		x_max_a			= dimensions_a[1]
-		y_min_a			= -dimensions_a[0]
-
-		dimensions_b	= np.shape(img_b)
-		x_max_b			= dimensions_b[1]
-		y_min_b			= -dimensions_b[0]
-
-		plt.subplot(2, 2, 1)
-		plt.imshow(img_a, cmap = 'gray')
-		plt.xticks([]), plt.yticks([])
-		plt.title('Shape to Match: ')
-
-		plt.subplot(2, 2, 2)
-		plt.imshow(img_b, cmap = 'gray')
-		plt.xticks([]), plt.yticks([])
-		plt.title('Difference to Original Shape: \n' + str(np.round(distance, 3)))
-
-		plt.subplot(2, 2, 3)
-		plt.plot(boundary_a.real, boundary_a.imag, 'k')
-		plt.xticks([])
-		plt.yticks([])
-		plt.title('Visualisation of Original\nShape\'s Descriptors')
-
-		plt.subplot(2, 2, 4)
-		plt.plot(boundary_b.real, boundary_b.imag, 'k')
-		plt.xticks([])
-		plt.yticks([])
-		plt.title('Visualisation of Comparison\nShape\'s Descriptors')
-
-		plt.show()
-
-	# Returns a fourier descriptor that is invariant to scale, rotation and displacement (difference in starting point of shape)
-	def make_scale_rotation_sp_invariant(self, fourier_desc):
-		first_val = fourier_desc[0]
-
+	# Returns a fourier descriptor that is invariant to rotation and boundary starting point.
+	def make_rotation_sp_invariant(self, fourier_desc):
 		for index, value in enumerate(fourier_desc):
-		  fourier_desc[index] = np.absolute(value)/first_val
+		  fourier_desc[index] = np.absolute(value)
 
 		return fourier_desc
 
+	# Returns a fourier descriptor that is invariant to scale.
+	def make_scale_invariant(self, fourier_desc):
+		first_val	= fourier_desc[0]
+
+		for index, value in enumerate(fourier_desc):
+			fourier_desc[index]	= value / first_val
+
+		return fourier_desc
+
+	# Returns a fourier descriptor that is invariant to translation.
 	def make_translation_invariant(self, fourier_desc):
 		return fourier_desc[1:len(fourier_desc)]
 
