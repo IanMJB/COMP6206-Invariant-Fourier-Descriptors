@@ -11,8 +11,8 @@
 
 # External libraries.
 # TODO: Remove unused later.
-import cv2
 import sys
+import cv2
 import math
 import numpy as np
 
@@ -46,24 +46,7 @@ img_a	= 'penguin.jpg'
 img_b	= 'penguin_rotated.jpg'
 
 toolbox	= fourier_toolbox()
-
-contour_a	= toolbox.get_complex_contour(img_dir, img_a, 1)
-contour_b	= toolbox.get_complex_contour(img_dir, img_b, 1)
-
-#for index, value in enumerate(contour_b):
-#	if value != contour_a[index]:
-#		print math.abs(value - contour_a[index])
-
-fourier_a	= np.fft.fft(contour_a)
-fourier_b	= np.fft.fft(contour_b)
-
-trun_a		= toolbox.get_low_frequencies(fourier_a, 10)
-trun_b		= toolbox.get_low_frequencies(fourier_b, 10)
-
-# Translation invariance.
-
-
-print distance.euclidean(trun_a, trun_b)
+toolbox.get_shape_difference(img_dir, img_a, img_b, 1, 1)
 
 #print np.linalg.norm(contour_a - contour_b)
 

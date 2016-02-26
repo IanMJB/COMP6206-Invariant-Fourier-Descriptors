@@ -8,6 +8,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+from scipy.spatial import distance
 
 class fourier_toolbox:
 
@@ -17,8 +18,8 @@ class fourier_toolbox:
 
 	# Converts an RGB image into greyscale.
 	# Then converts the greyscale image into a binary one, and returns the threshold image.
-	def clean(self, image, is_img_rgb):
-		img_clone	= self.fresh_image(image)
+	def apply_thresholding(self, image, is_img_rgb):
+		img_clone	= self.get_copy(image)
 
 		if is_img_rgb:
 			img_clone	= cv2.cvtColor(img_clone, cv2.COLOR_BGR2GRAY)
@@ -31,21 +32,15 @@ class fourier_toolbox:
 	# Potential TODO: Expand to other parameters:
 	# Most exhaustive parameters fed in, change later if possible - specifically CHAIN_APPROX_NONE to CHAIN_APPROX_SIMPLE.
 	def find_contours(self, image):
-		img_clone	= self.fresh_image(image)
+		img_clone	= self.get_copy(image)
 
+		# TODO: Measure speed gains and discuss in slides
 		contours, hierarchy	= cv2.findContours(img_clone, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
 		return contours
 
-	# Basic image display for a single image.
-	# Closes all images after use.
-	def display_image(self, image, title):
-		cv2.imshow(title, image)
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
-
 	# Returns a clone of an image, or the original image if no argument passed.
-	def fresh_image(self, image):
+	def get_copy(self, image):
 		return copy.deepcopy(image)
 
 	# Normalises the boundary, so the minimum x/y are 0/0.
@@ -126,6 +121,67 @@ class fourier_toolbox:
 
 		return inverted
 
+	def get_shape_difference(self, img_dir, img_a, img_b, contour_level_a, contour_level_b):
+		# Get contour represented as complex numbers
+		contour_a		= self.get_complex_contour(img_dir, img_a, contour_level_a)
+		contour_b		= self.get_complex_contour(img_dir, img_b, contour_level_b)
+
+		# Get fourier descriptor from contours
+		fourier_a		= np.fft.fft(contour_a)
+		fourier_b		= np.fft.fft(contour_b)
+
+		# Make result invariant to scale, translation, etc.
+		fourier_a 	= self.make_scale_rotation_sp_invariant(fourier_a)
+		fourier_b 	= self.make_scale_rotation_sp_invariant(fourier_b)
+
+		# Uses a subset of the fourier coefficient as we only care
+		# about the global form of the contours, not the details
+		trun_a			= self.get_low_frequencies(fourier_a, 5)
+		trun_b			= self.get_low_frequencies(fourier_b, 5)
+
+		# make translation invariant
+		final_a 		= self.make_translation_invariant(trun_a)
+		final_b			= self.make_translation_invariant(trun_b)
+
+		dist = distance.euclidean(final_a, final_b)
+
+		img_a = self.read_image(img_dir, img_a)
+		img_b = self.read_image(img_dir, img_b)
+
+		# Generate opencv shape matching (uses Hu moments) for comparison
+		ocv_contour_a = self.find_contours(self.get_copy(img_a))[contour_level_a]
+		ocv_contour_b = self.find_contours(self.get_copy(img_b))[contour_level_b]
+
+		opencv_dist = cv2.matchShapes(ocv_contour_a, ocv_contour_b, 1, 0)
+
+		print "Distance generated from opencv.matchShapes: " + str(opencv_dist)
+		self.display_shape_difference(img_a, img_b, dist)
+
+	def display_shape_difference(self, img_a, img_b, distance):
+		plt.subplot(1, 2, 1)
+		plt.imshow(img_a, cmap = 'gray')
+		plt.xticks([]), plt.yticks([])
+		plt.title('Shape to Match: ')
+
+		plt.subplot(1, 2, 2)
+		plt.imshow(img_b, cmap = 'gray')
+		plt.xticks([]), plt.yticks([])
+		plt.title('Difference to Original Shape: \n' + str(np.round(distance, 3)))
+
+		plt.show()
+
+	# Returns a fourier descriptor that is invariant to scale, rotation and displacement (difference in starting point of shape)
+	def make_scale_rotation_sp_invariant(self, fourier_desc):
+		first_val = fourier_desc[0]
+
+		for index, value in enumerate(fourier_desc):
+		  fourier_desc[index] = np.absolute(value)/first_val
+
+		return fourier_desc
+
+	def make_translation_invariant(self, fourier_desc):
+		return fourier_desc[1:len(fourier_desc)]
+
 	# Plots the boundary.
 	# Expects it as a numpy complex array.
 	def plot_boundary(self, image, boundary, boundary_percent):
@@ -182,7 +238,7 @@ class fourier_toolbox:
 
 	# Function for demonstration used to display truncated contours.
 	def demo(self, image, image_name, is_img_rgb, percent_to_keep, contour_level):
-		threshold_img	= self.clean(image, is_img_rgb)
+		threshold_img	= self.apply_thresholding(image, is_img_rgb)
 		contours		= self.find_contours(threshold_img)
 		contour_complex	= self.contour_to_complex(contours, contour_level)
 		fourier_val		= np.fft.fft(contour_complex)
@@ -203,7 +259,7 @@ class fourier_toolbox:
 	# call the functions necessary and return the contour in its complex form.
 	def get_complex_contour(self, img_dir, img_name, contour_level):
 		img_orig		= self.read_image(img_dir, img_name)
-		threshold_img	= self.clean(img_orig, 0)
+		threshold_img	= self.apply_thresholding(img_orig, 0)
 		contours		= self.find_contours(threshold_img)
 		contour_complex	= self.contour_to_complex(contours, contour_level)
 		return contour_complex
