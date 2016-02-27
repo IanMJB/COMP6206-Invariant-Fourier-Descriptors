@@ -15,9 +15,7 @@
 # 3) Contour level of image A (may be several, generally the one you want
 # has to be found via trial and error on the image if there are several): 0->X.
 # 4) Contour level of image B (as above).
-# 5) Number of frequencies to keep for comparison (note this is N+1 when translation
-# invariance is desired, as it also removes the DC-term).
-# E.g. python main.py compare_images kitty.jpg kitty_rotated.jpg 95 95 10
+# E.g. python main.py compare_images kitty.jpg kitty_rotated.jpg 95 95
 
 # External libraries.
 import sys
