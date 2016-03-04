@@ -1,0 +1,1 @@
+python main.py compare_images kitty.jpg kitty_rotated.jpg 95 1722

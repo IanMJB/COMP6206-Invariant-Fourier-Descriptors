@@ -1,0 +1,1 @@
+python main.py compare_images kitty.jpg kitty_translated.jpg 95 95

@@ -1,0 +1,1 @@
+python main.py boundary_demo penguin.jpg 0 all 0
